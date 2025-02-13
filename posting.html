@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Client-Server Posting System</title>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Fetch and display all posts and responses
+      function fetchAllData() {
+        $.get('/alldata', function(data) {
+          $('#posts').empty();
+          data.posts.forEach(post => {
+            const postItem = `<div id="post-${post.id}">
+              <h3>${post.topic}</h3>
+              <p>${post.data}</p>
+              <button onclick="showResponseForm(${post.id})">Respond</button>
+              <div id="responses-${post.id}"></div>
+            </div>`;
+            $('#posts').append(postItem);
+  
+            // Display responses for each post
+            const postResponses = data.responses.filter(response => response.postId === post.id);
+            postResponses.forEach(response => {
+              const responseItem = `<p>${response.data}</p>`;
+              $(`#responses-${post.id}`).append(responseItem);
+            });
+          });
+        });
+      }
+  
+      // Create a new post
+      $('#postForm').submit(function(event) {
+        event.preventDefault();
+        const topic = $('#topic').val();
+        const data = $('#data').val();
+        $.post('/postmessage', { topic, data }, function(response) {
+          if (response.success) {
+            fetchAllData();
+          }
+        });
+      });
+  
+      // Show response form for a specific post
+      window.showResponseForm = function(postId) {
+        $('#responseDialog').data('postId', postId).dialog('open');
+      }
+  
+      // Create a new response
+      $('#responseForm').submit(function(event) {
+        event.preventDefault();
+        const postId = $('#responseDialog').data('postId');
+        const data = $('#responseData').val();
+        $.post('/postresponse', { postId, data }, function(response) {
+          if (response.success) {
+            fetchAllData();
+            $('#responseDialog').dialog('close');
+          }
+        });
+      });
+  
+      // Initialize response dialog
+      $('#responseDialog').dialog({
+        autoOpen: false,
+        modal: true,
+        buttons: {
+          "Submit": function() {
+            $('#responseForm').submit();
+          },
+          "Cancel": function() {
+            $(this).dialog('close');
+          }
+        }
+      });
+  
+      // Fetch all data on page load
+      fetchAllData();
+    });
+  </script>
+  
+</head>
+<body>
+  <h1>Client-Server Posting System</h1>
+  <div>
+    <form id="postForm">
+      <input type="text" id="topic" placeholder="Topic" required>
+      <textarea id="data" placeholder="Data" required></textarea>
+      <button type="submit">Post</button>
+    </form>
+    <div id="posts"></div>
+    <div id="responseDialog" title="Respond to Post">
+      <form id="responseForm">
+        <textarea id="responseData" placeholder="Response Data" required></textarea>
+      </form>
+    </div>
+    
+</div>
+
+  </div>
+</body>
+</html>
